@@ -17,7 +17,7 @@ int tryMove(state, humanOrPC, depth) {
   var maxScoreCanHave = humanOrPC ? max_int : -max_int;
   var rightMove = null;
   for (move : getAllPossibleMoves() ) {
-    var bestOfTheOther = tryHumanMove(makeMove(state, move), humanOrPC ^ 1, depth+1);
+    var bestOfTheOther = tryMove(makeMove(state, move), humanOrPC ^ 1, depth+1);
     if ((bestOfTheOther < maxScoreCanHave && humanOrPC)
       ||  (bestOfTheOther > maxScoreCanHave && !humanOrPC)) {
       maxScoreCanHave = bestOfHuman;

@@ -325,7 +325,10 @@ var Board = function(initState) {
     for (var ii = 0; ii<allPossibleMoves.length; ii++) {
       var move = allPossibleMoves[ii];
       makeMove(move);
-      if (move.to.container.type == Piece.King) return { move: move, bestScore: -MINVALUE };
+      if (move.to.container.type == Piece.King) {
+        undoMove(move);
+        return { move: move, bestScore: -MINVALUE };
+      }
       var bestOfTheOther= tryMove(humanOrPC ^ 1, depth+1).bestScore;
       if ( (bestOfTheOther < maxScoreCanHave && humanOrPC)
         ||  (bestOfTheOther > maxScoreCanHave && (!humanOrPC)) ) {

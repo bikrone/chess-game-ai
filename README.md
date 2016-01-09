@@ -10,7 +10,7 @@ The algorithm is simple DFS, prioritized by simple estimation of chess state bas
 Below is the pseudo code of the main code to find the best move for a specific state.
 
 ```csharp
-int MAX_DEPTH = 4;
+int MAX_DEPTH = 3;
 
 int tryMove(state, humanOrPC, depth) {
   if (depth >= MAX_DEPTH) return null, calculateScore(state);
@@ -30,7 +30,7 @@ int tryMove(state, humanOrPC, depth) {
 ```
 
 ###Note
-The algorithm is running on client browser so the performance is really bad, if you choose the Hard mode (depth = 5), it may freeze in a few secs. I may move the code to another agent to avoid this issue.
+The algorithm is running on client browser so the performance is really bad, if you choose the Hard mode (depth = 4), it may freeze in a few secs. I may move the code to another agent to avoid this issue.
 
 
 ###Resources

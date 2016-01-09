@@ -316,7 +316,8 @@ var Board = function(initState) {
 
   var tryMove = function(humanOrPC, depth) {
     if (depth >= MAX_DEPTH) return { move: null, bestScore: calculateScore(state) };
-    var maxScoreCanHave = humanOrPC ? MAX_INT : -MAX_INT;
+    var MINVALUE = humanOrPC ? MAX_INT : -MAX_INT;
+    var maxScoreCanHave = MINVALUE;
     var rightMove = null;
     var allPossibleMoves = getAllPossibleMoves(humanOrPC);
     var iiMove = 0;
@@ -324,6 +325,7 @@ var Board = function(initState) {
     for (var ii = 0; ii<allPossibleMoves.length; ii++) {
       var move = allPossibleMoves[ii];
       makeMove(move);
+      if (move.to.container.type == Piece.King) return { move: move, bestScore: -MINVALUE };
       var bestOfTheOther= tryMove(humanOrPC ^ 1, depth+1).bestScore;
       if ( (bestOfTheOther < maxScoreCanHave && humanOrPC)
         ||  (bestOfTheOther > maxScoreCanHave && (!humanOrPC)) ) {

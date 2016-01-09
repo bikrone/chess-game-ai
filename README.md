@@ -9,7 +9,7 @@ The algorithm is simple DFS, prioritized by simple estimation of chess state bas
 
 Below is the pseudo code of the main code to find the best move for a specific state.
 
-```cpp
+```csharp
 int MAX_DEPTH = 4;
 
 int tryMove(state, humanOrPC, depth) {
@@ -17,7 +17,7 @@ int tryMove(state, humanOrPC, depth) {
   var maxScoreCanHave = humanOrPC ? max_int : -max_int;
   var rightMove = null;
   for (move : getAllPossibleMoves() ) {
-    var bestOfTheOther= tryHumanMove(makeMove(state, move), humanOrPC ^ 1, depth+1);
+    var bestOfTheOther = tryHumanMove(makeMove(state, move), humanOrPC ^ 1, depth+1);
     if ((bestOfTheOther < maxScoreCanHave && humanOrPC)
       ||  (bestOfTheOther > maxScoreCanHave && !humanOrPC)) {
       maxScoreCanHave = bestOfHuman;

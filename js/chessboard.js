@@ -547,7 +547,7 @@ var Board = function(conf) {
   var calcCount = 0;
 
   var tryMove = function(humanOrPC, depth) {
-    if (depth == 0) return { move: null, bestScore: -calculateScore(state) };
+    if (depth == 0) return { move: null, bestScore: humanOrPC ? -calculateScore(state) : calculateScore(state)};
     var MINVALUE = -MAX_INT;
     var maxScoreCanHave = MINVALUE;
     var rightMove = null;

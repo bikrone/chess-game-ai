@@ -7,6 +7,13 @@ var FIRST_BACKGROUND_COLOR = '#AB7B2A';
 var SECOND_BACKGROUND_COLOR = '#FFFAD5';
 
 var cells = [];
+var moveTo = [];
+for (var i=0; i<8; i++) {
+  moveTo[i] = [];
+  for (var j=0; j<8; j++) {
+    moveTo[i][j] = null;
+  }
+}
 
 var board = null;
 
@@ -67,12 +74,20 @@ var checkState = function(x,y) {
 
 var fromx, tox;
 
-var makeMove = function(fromx,fromy,tox,toy) {
+var makeMove = function(fromx,fromy,tox,toy, move) {
   choosingState = 'none';
   $('.enabled').removeClass('enabled');
-  board.makeMove(fromx,fromy,tox,toy);
+  var m = moveTo[tox][toy];
+  if (move != undefined) {
+    m = move;
+  }
+  var log = board.makeMove(m);
+  $('textarea#moveLog').append(currentTurn.toUpperCase() + ": " +log+'\n');
   setCellContainer(fromx,fromy,board.get(fromx, fromy));
   setCellContainer(tox,toy,board.get(tox, toy));
+  if (m.specialCondition != undefined) {
+    updateBoard();
+  }
 }
 
 var chooseCell = function(x,y) {
@@ -82,6 +97,7 @@ var chooseCell = function(x,y) {
   fromx = x; fromy = y;
   possibleMoves.forEach(function(move) {
     setCellStateHighlighting(move.to.x, move.to.y);
+    moveTo[move.to.x][move.to.y] = move;
   });
   choosingState = 'chosen';
 }
@@ -121,6 +137,7 @@ var startGame = function() {
   choosingState = 'none';
   currentTurn = 'human';
   $('.enabled').removeClass('enabled');
+  $('#moveLog').text('');
 }
 
 var cellOnClick = function() {
@@ -139,12 +156,20 @@ var cellOnClick = function() {
       currentTurn = 'pc';
       setStatus('PC turn, he is thinking...');
       var move = board.getPCResponse();
-      makeMove(move.from.x, move.from.y, move.to.x, move.to.y);
+      makeMove(move.from.x, move.from.y, move.to.x, move.to.y, move);
       currentTurn = 'human';
       choosingState = 'none';
       $('.enabled').removeClass('enabled');
       setStatus('Your turn, You are white!');
       if (checkWin()) return;
+    }
+  }
+}
+
+var updateBoard = function() {
+  for (var i=0; i<8; i++) {
+    for (var j=0; j<8; j++) {
+      setCellContainer(i,j,board.get(i,j));
     }
   }
 }

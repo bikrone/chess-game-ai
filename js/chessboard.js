@@ -1,12 +1,31 @@
 var BLACK = 0;
 var WHITE = 1;
 
+var shuffle = function(array) {
+  var currentIndex = array.length, temporaryValue, randomIndex;
+
+  // While there remain elements to shuffle...
+  while (0 !== currentIndex) {
+
+    // Pick a remaining element...
+    randomIndex = Math.floor(Math.random() * currentIndex);
+    currentIndex -= 1;
+
+    // And swap it with the current element.
+    temporaryValue = array[currentIndex];
+    array[currentIndex] = array[randomIndex];
+    array[randomIndex] = temporaryValue;
+  }
+
+  return array;
+}
+
 var Piece = {
   Pawn: 1,
-  Knight: 3,
-  Bishop: 4,
+  Knight: 3.1,
+  Bishop: 3.3,
   Rook: 5,
-  Queen: 8,
+  Queen: 9,
   King: 1000000,
   Empty: 0
 }
@@ -28,9 +47,39 @@ var Board = function(initState) {
   var secondColor = WHITE;
   var state = {};
 
-  var Move = function(from, to) {
+  var isKingMove = {};
+  var isLeftRookMove = {};
+  var isRightRookMove = {};
+  isKingMove[firstColor] = 0;
+  isKingMove[secondColor] = 0;
+  isLeftRookMove[firstColor] = 0;
+  isLeftRookMove[secondColor] = 0;
+  isRightRookMove[firstColor] = 0;
+  isRightRookMove[secondColor] = 0;
+
+  var findNameOfPiece = function(piece) {
+    for (var key in Piece) {
+      if (Piece[key] == piece) return key;
+    }
+    return null;
+  }
+
+  var Move = function(from, to, specialCondition) {
     this.from = from;
     this.to = to;
+    if (specialCondition != undefined) this.specialCondition = specialCondition;
+    this.toString = function() {
+      var str = findNameOfPiece(from.container.type) + '(' +from.x +','+from.y+')'+ ' to ' 
+          + findNameOfPiece(to.container.type) + '(' +to.x +','+to.y+')';
+      if (this.specialCondition != undefined) {
+        if (this.specialCondition.name == 'castling') {
+          return str + " - CASTLING";
+        } else if (this.specialCondition.name == 'upgradePawn') {
+          return str + " - PAWN UPGRADED";
+        }
+      }
+      return str;
+    }
   };
 
   var makePieceContainer = function(type, color) {
@@ -76,7 +125,7 @@ var Board = function(initState) {
     delete state[hash(x,y)];
   }
 
-  var makeMoveObject = function(fromx, fromy, tox, toy) {
+  var makeMoveObject = function(fromx, fromy, tox, toy, specialCondition) {
     var from = {
       x: fromx,
       y: fromy,
@@ -87,7 +136,7 @@ var Board = function(initState) {
       y: toy,
       container: get(tox,toy)
     }
-    return new Move(from, to);
+    return new Move(from, to, specialCondition);
   }
 
   var pieceMoves = {};
@@ -106,6 +155,59 @@ var Board = function(initState) {
         result.push(m);
       }
     })
+
+    // castling move
+    var isBottom = get(x,y).color == secondColor;
+    var color = get(x,y).color;
+    var bottomRow = (isBottom)?7:0;
+    if (isKingMove[color] == 0 && x == bottomRow) {
+      var sumOfSpace = 0;
+      // check right
+      for (var i=5; i<7; i++) sumOfSpace+=get(x,i).type;
+      var rook = get(x,7);
+      if (sumOfSpace == 0 && rook.color == color && rook.type == Piece.Rook && isRightRookMove[color] == 0) {
+        // make special move
+        var m = makeMoveObject(x,y,x,y+2, {
+          name: 'castling',
+          run: function() {
+            var move = makeMoveObject(x,y+3,x,y+1);
+            makeMove(move);
+          },
+          undo: function() {
+            var move = makeMoveObject(x,y+3,x,y+1);
+            var tmp = move.to.container;
+            move.to.container = move.from.container;
+            move.from.container = tmp;
+            undoMove(move);
+          }
+        });
+        result.push(m);
+      }
+
+      //check left
+      sumOfSpace = 0;
+      for (var i=1; i<4; i++) sumOfSpace+=get(x,i).type;
+      rook = get(x,0);
+      if (sumOfSpace == 0 && rook.color == color && rook.type == Piece.Rook && isLeftRookMove[color] == 0) {
+        // make special move
+        var m = makeMoveObject(x,y,x,y-2, {
+          name: 'castling',
+          run: function() {
+            var move = makeMoveObject(x,0,x,3);
+            makeMove(move);
+          },
+          undo: function() {
+            var move = makeMoveObject(x,0,x,3);
+            var tmp = move.to.container;
+            move.to.container = move.from.container;
+            move.from.container = tmp;
+            undoMove(move);
+          }
+        });
+        result.push(m);
+      }
+    }
+
 
     return result;
   }
@@ -187,9 +289,24 @@ var Board = function(initState) {
 
     var result = [];
     var direction = (get(x,y).color == secondColor) ? -1 : 1;
+    var m = {};
+    var color = get(x,y).color;
+    if ((direction == 1 && x == 6) || (direction == -1 && x == 1)) {
+      m = makeMoveObject(x,y,x+direction,y, {
+          name: 'upgradePawn',
+          run: function() {
+            set(x+direction,y,makePieceContainer(Piece.Queen, color))
+          },
+          undo: function() {
+            
+          }
+        });
+    } else {
+      m = makeMoveObject(x,y,x+direction,y);
+    }
 
-    var m = makeMoveObject(x,y,x+direction,y);
     if (m.to.container.type == Piece.Empty) result.push(m);
+    
     if ((direction == 1 && x == 1) || (direction == -1 && x == 6)) {
       m = makeMoveObject(x,y,x+2*direction,y);
       if (m.to.container.type == Piece.Empty) result.push(m);
@@ -198,7 +315,20 @@ var Board = function(initState) {
     moves.forEach(function(move) {
       var i = x + move[0] * direction;
       var j = y + move[1];
-      var m = makeMoveObject(x,y,i,j);
+      var m = {};
+      if ((direction == 1 && i==7) || (direction == -1 && i==0)) {
+      m = makeMoveObject(x,y,i,j, {
+          name: 'upgradePawn',
+          run: function() {
+            set(i,j,makePieceContainer(Piece.Queen, color))
+          },
+          undo: function() {
+            
+          }
+        });
+      } else {
+        m = makeMoveObject(x,y,i,j);
+      }
       if (isValid(m) && m.to.container.type != Piece.Empty) {
         result.push(m);
       }
@@ -229,8 +359,8 @@ var Board = function(initState) {
     set(0,0, makePieceContainer(Piece.Rook, firstColor));
     set(0,1, makePieceContainer(Piece.Knight, firstColor));
     set(0,2, makePieceContainer(Piece.Bishop, firstColor));
-    set(0,3, makePieceContainer(Piece.King, firstColor));
-    set(0,4, makePieceContainer(Piece.Queen, firstColor));
+    set(0,3, makePieceContainer(Piece.Queen, firstColor));
+    set(0,4, makePieceContainer(Piece.King, firstColor));
     set(0,5, makePieceContainer(Piece.Bishop, firstColor));
     set(0,6, makePieceContainer(Piece.Knight, firstColor));
     set(0,7, makePieceContainer(Piece.Rook, firstColor));
@@ -242,8 +372,8 @@ var Board = function(initState) {
     set(7,0, makePieceContainer(Piece.Rook, secondColor));
     set(7,1, makePieceContainer(Piece.Knight, secondColor));
     set(7,2, makePieceContainer(Piece.Bishop, secondColor));
-    set(7,3, makePieceContainer(Piece.King, secondColor));
-    set(7,4, makePieceContainer(Piece.Queen, secondColor));
+    set(7,3, makePieceContainer(Piece.Queen, secondColor));
+    set(7,4, makePieceContainer(Piece.King, secondColor));
     set(7,5, makePieceContainer(Piece.Bishop, secondColor));
     set(7,6, makePieceContainer(Piece.Knight, secondColor));
     set(7,7, makePieceContainer(Piece.Rook, secondColor));
@@ -256,11 +386,39 @@ var Board = function(initState) {
   var makeMove = function(move) {
     set(move.to.x, move.to.y, move.from.container);
     del(move.from.x, move.from.y);
+    if (move.from.container.type == Piece.King) {
+      isKingMove[move.from.container.color]++;
+    } else if (move.from.container.type == Piece.Rook) {
+      var color = null;
+      if (move.from.x == 0) color = firstColor;
+      else if (move.from.x == 7) color = secondColor;
+      if (color != null) {
+        if (move.from.y == 0) isLeftRookMove[color]++;
+        else if (move.from.y == 7) {
+          isRightRookMove[color]++;
+        }
+      }
+    }
+    if (move.specialCondition != undefined) move.specialCondition.run();
   }
 
   var undoMove = function(move) {
     set(move.from.x, move.from.y, move.from.container);
     set(move.to.x, move.to.y, move.to.container);
+    if (move.from.container.type == Piece.King) {
+      isKingMove[move.from.container.color]--;
+    } else if (move.from.container.type == Piece.Rook) {
+      var color = null;
+      if (move.from.x == 0) color = firstColor;
+      else if (move.from.x == 7) color = secondColor;
+      if (color != null) {
+        if (move.from.y == 0) isLeftRookMove[color]--;
+        else if (move.from.y == 7) {
+          isRightRookMove[color]--;
+        }
+      }
+    }
+    if (move.specialCondition != undefined) move.specialCondition.undo();
   }
 
   var getHumanOrPCPositions = function(humanOrPC) {
@@ -273,6 +431,8 @@ var Board = function(initState) {
         if (state[key].color == checkColor) result.push(decode(key));
       }
     }
+    
+    shuffle(result);
     result.sort(function(a,b) {
       return get(a[0], a[1]).type - get(b[0], b[1]).type;
     })
@@ -350,8 +510,9 @@ var Board = function(initState) {
   }
 
   // allow player to make a move from (i,j) to (x,y)
-  this.makeMove = function(i,j,x,y) {
-    makeMove(makeMoveObject(i,j,x,y,this));
+  this.makeMove = function(move) {
+    makeMove(move);
+    return move.toString();
   };
 
   this.checkWin = function() {

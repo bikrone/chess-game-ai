@@ -435,6 +435,7 @@ var Board = function(conf) {
   }
   
   var makeMove = function(move) {
+    
     set(move.to.x, move.to.y, move.from.container);
     del(move.from.x, move.from.y);
     if (move.from.container.type == Piece.King) {
@@ -547,13 +548,14 @@ var Board = function(conf) {
   var calcCount = 0;
 
   var tryMove = function(humanOrPC, depth) {
+    calcCount++;
     if (depth == 0) return { move: null, bestScore: humanOrPC ? -calculateScore(state) : calculateScore(state)};
     var MINVALUE = -MAX_INT;
     var maxScoreCanHave = MINVALUE-1;
     var rightMove = null;
     var allPossibleMoves = getAllPossibleMoves(humanOrPC);
     var iiMove = 0;
-    calcCount++;
+    
     for (var ii = 0; ii<allPossibleMoves.length; ii++) {
       var move = allPossibleMoves[ii];
       makeMove(move);

@@ -372,12 +372,13 @@ var Board = function(initState) {
     } else {
       m = makeMoveObject(x,y,x+direction,y);
     }
-
-    if (m.to.container.type == Piece.Empty) result.push(m);
+    if (m.to.container.type == Piece.Empty) {
+      result.push(m);
     
-    if ((direction == 1 && x == 1) || (direction == -1 && x == 6)) {
-      m = makeMoveObject(x,y,x+2*direction,y);
-      if (m.to.container.type == Piece.Empty) result.push(m);
+      if ((direction == 1 && x == 1) || (direction == -1 && x == 6)) {
+        m = makeMoveObject(x,y,x+2*direction,y);
+        if (m.to.container.type == Piece.Empty) result.push(m);
+      }
     }
 
     moves.forEach(function(move) {
@@ -551,8 +552,8 @@ var Board = function(initState) {
   var calcCount = 0;
 
   var tryMove = function(humanOrPC, depth) {
-    if (depth >= MAX_DEPTH) return { move: null, bestScore: calculateScore(state) };
-    var MINVALUE = humanOrPC ? MAX_INT : -MAX_INT;
+    if (depth == 0) return { move: null, bestScore: -calculateScore(state) };
+    var MINVALUE = -MAX_INT;
     var maxScoreCanHave = MINVALUE;
     var rightMove = null;
     var allPossibleMoves = getAllPossibleMoves(humanOrPC);
@@ -565,9 +566,8 @@ var Board = function(initState) {
         undoMove(move);
         return { move: move, bestScore: -MINVALUE };
       }
-      var bestOfTheOther= tryMove(humanOrPC ^ 1, depth+1).bestScore;
-      if ( (bestOfTheOther < maxScoreCanHave && humanOrPC)
-        ||  (bestOfTheOther > maxScoreCanHave && (!humanOrPC)) ) {
+      var bestOfTheOther= -tryMove(humanOrPC ^ 1, depth-1).bestScore;
+      if ( bestOfTheOther > maxScoreCanHave) {
         maxScoreCanHave = bestOfTheOther;
         rightMove = move;
         iiMove = ii;
@@ -618,7 +618,7 @@ var Board = function(initState) {
 
   this.getPCResponse = function() {
     calcCount = 0;
-    var res = tryMove(false, 0).move;
+    var res = tryMove(false, MAX_DEPTH).move;
     console.log('Calculation steps: ' + calcCount);
     return res;
   }

@@ -104,13 +104,30 @@ var GameState = {
   Normal: 0
 }
 
-var HUMAN_COLOR = WHITE;
-var PC_COLOR = BLACK;
+
 var MAX_INT = 1000000000;
 
-var Board = function(initState) {
-  var MAX_DEPTH = 3;
+var moveToString = function(m, board) {
+  var from = m.from;
+  var to = m.to;
+  var specialCondition = m.specialCondition;
+  var str = board.findNameOfPiece(from.container.type) + '(' +from.x +','+from.y+')'+ ' to ' 
+      + board.findNameOfPiece(to.container.type) + '(' +to.x +','+to.y+')';
+  if (specialCondition != undefined) {
+    if (specialCondition.name == 'castling') {
+      return str + " - CASTLING";
+    } else if (specialCondition.name == 'upgradePawn') {
+      return str + " - PAWN UPGRADED";
+    }
+  }
+  return str;
 
+}
+
+var Board = function(conf) {
+  var MAX_DEPTH = 3;
+  var HUMAN_COLOR = WHITE;
+  var PC_COLOR = BLACK;
   var firstColor = BLACK;
   var secondColor = WHITE;
   var state = {};
@@ -125,6 +142,17 @@ var Board = function(initState) {
   isRightRookMove[firstColor] = 0;
   isRightRookMove[secondColor] = 0;
 
+  if (conf !== undefined) {
+    isKingMove = conf.isKingMove;
+    isLeftRookMove = conf.isLeftRookMove;
+    isRightRookMove = conf.isRightRookMove;
+    firstColor = conf.firstColor;
+    secondColor = conf.secondColor;
+    state = conf.state;
+    HUMAN_COLOR = conf.HUMAN_COLOR;
+    PC_COLOR = conf.PC_COLOR ;
+  }
+
   var findNameOfPiece = function(piece) {
     for (var key in Piece) {
       if (Piece[key] == piece) return key;
@@ -136,18 +164,7 @@ var Board = function(initState) {
     this.from = from;
     this.to = to;
     if (specialCondition != undefined) this.specialCondition = specialCondition;
-    this.toString = function() {
-      var str = findNameOfPiece(from.container.type) + '(' +from.x +','+from.y+')'+ ' to ' 
-          + findNameOfPiece(to.container.type) + '(' +to.x +','+to.y+')';
-      if (this.specialCondition != undefined) {
-        if (this.specialCondition.name == 'castling') {
-          return str + " - CASTLING";
-        } else if (this.specialCondition.name == 'upgradePawn') {
-          return str + " - PAWN UPGRADED";
-        }
-      }
-      return str;
-    }
+    
   };
 
   var makePieceContainer = function(type, color) {
@@ -237,17 +254,7 @@ var Board = function(initState) {
         // make special move
         var m = makeMoveObject(x,y,x,y+2, {
           name: 'castling',
-          run: function() {
-            var move = makeMoveObject(x,y+3,x,y+1);
-            makeMove(move);
-          },
-          undo: function() {
-            var move = makeMoveObject(x,y+3,x,y+1);
-            var tmp = move.to.container;
-            move.to.container = move.from.container;
-            move.from.container = tmp;
-            undoMove(move);
-          }
+          secondMove: makeMoveObject(x,y+3,x,y+1)
         });
         result.push(m);
       }
@@ -260,17 +267,7 @@ var Board = function(initState) {
         // make special move
         var m = makeMoveObject(x,y,x,y-2, {
           name: 'castling',
-          run: function() {
-            var move = makeMoveObject(x,0,x,3);
-            makeMove(move);
-          },
-          undo: function() {
-            var move = makeMoveObject(x,0,x,3);
-            var tmp = move.to.container;
-            move.to.container = move.from.container;
-            move.from.container = tmp;
-            undoMove(move);
-          }
+          secondMove: makeMoveObject(x,0,x,3)
         });
         result.push(m);
       }
@@ -361,13 +358,7 @@ var Board = function(initState) {
     var color = get(x,y).color;
     if ((direction == 1 && x == 6) || (direction == -1 && x == 1)) {
       m = makeMoveObject(x,y,x+direction,y, {
-          name: 'upgradePawn',
-          run: function() {
-            set(x+direction,y,makePieceContainer(Piece.Queen, color))
-          },
-          undo: function() {
-            
-          }
+          name: 'upgradePawn'
         });
     } else {
       m = makeMoveObject(x,y,x+direction,y);
@@ -386,14 +377,8 @@ var Board = function(initState) {
       var j = y + move[1];
       var m = {};
       if ((direction == 1 && i==7) || (direction == -1 && i==0)) {
-      m = makeMoveObject(x,y,i,j, {
-          name: 'upgradePawn',
-          run: function() {
-            set(i,j,makePieceContainer(Piece.Queen, color))
-          },
-          undo: function() {
-            
-          }
+        m = makeMoveObject(x,y,i,j, {
+          name: 'upgradePawn'
         });
       } else {
         m = makeMoveObject(x,y,i,j);
@@ -424,7 +409,7 @@ var Board = function(initState) {
     return result;
   }
 
-  if (initState === undefined) {
+  if (conf === undefined) {
     set(0,0, makePieceContainer(Piece.Rook, firstColor));
     set(0,1, makePieceContainer(Piece.Knight, firstColor));
     set(0,2, makePieceContainer(Piece.Bishop, firstColor));
@@ -446,11 +431,7 @@ var Board = function(initState) {
     set(7,5, makePieceContainer(Piece.Bishop, secondColor));
     set(7,6, makePieceContainer(Piece.Knight, secondColor));
     set(7,7, makePieceContainer(Piece.Rook, secondColor));
-  } else {
-    state = initState;
   }
-
-  
   
   var makeMove = function(move) {
     set(move.to.x, move.to.y, move.from.container);
@@ -468,7 +449,14 @@ var Board = function(initState) {
         }
       }
     }
-    if (move.specialCondition != undefined) move.specialCondition.run();
+    if (move.specialCondition != undefined) {
+      if (move.specialCondition.name == 'castling') {
+        makeMove(move.specialCondition.secondMove);
+      } else if (move.specialCondition.name == 'upgradePawn') {
+        var color = get(move.from.x, move.from.y).color;
+        set(move.to.x, move.to.y, makePieceContainer(Piece.Queen, color));
+      }
+    }
   }
 
   var undoMove = function(move) {
@@ -487,7 +475,13 @@ var Board = function(initState) {
         }
       }
     }
-    if (move.specialCondition != undefined) move.specialCondition.undo();
+    if (move.specialCondition != undefined) {
+      if (move.specialCondition.name == 'castling') {
+        undoMove(move.specialCondition.secondMove);
+      } else if (move.specialCondition.name == 'upgradePawn') {
+
+      }
+    }
   }
 
   var getHumanOrPCPositions = function(humanOrPC) {
@@ -590,7 +584,7 @@ var Board = function(initState) {
   // allow player to make a move from (i,j) to (x,y)
   this.makeMove = function(move) {
     makeMove(move);
-    return move.toString();
+    return moveToString(move, this);
   };
 
   this.checkWin = function() {
@@ -632,4 +626,29 @@ var Board = function(initState) {
   this.isHumanPiece = function(x,y) {
     return get(x,y).type != Piece.Empty && get(x,y).color == HUMAN_COLOR;
   }
+
+  this.getConfiguration = function() {
+    var conf = {};
+    conf.isKingMove = isKingMove;
+    conf.isLeftRookMove = isLeftRookMove;
+    conf.isRightRookMove = isRightRookMove;
+    conf.firstColor = firstColor;
+    conf.secondColor = secondColor;
+    conf.state = state;
+    conf.HUMAN_COLOR = HUMAN_COLOR;
+    conf.PC_COLOR = PC_COLOR;
+    return conf;
+  }
+
+  this.findNameOfPiece = findNameOfPiece;
 };
+
+Board.findBestMove = function(conf) {
+  var board = new Board(conf);
+  return board.getPCResponse();
+}
+
+self.addEventListener('message', function(e) {
+  var bestMove = Board.findBestMove(e.data);
+  self.postMessage(bestMove);
+});

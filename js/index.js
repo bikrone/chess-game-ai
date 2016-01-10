@@ -1,3 +1,6 @@
+var num_threads = 1;
+var MT = new Multithread(num_threads);
+
 var currentTurn = 'human'; // human turn
 var choosingState = 'none';
 
@@ -140,8 +143,20 @@ var startGame = function() {
   $('#moveLog').text('');
 }
 
+var chessEngine = new Worker('js/chessboard.js');
+chessEngine.addEventListener('message', function(e) {
+  var move = e.data;
+  makeMove(move.from.x, move.from.y, move.to.x, move.to.y, move);
+  currentTurn = 'human';
+  choosingState = 'none';
+  $('.enabled').removeClass('enabled');
+  setStatus('Your turn, You are white!');
+  if (checkWin()) return;
+})
+
 var cellOnClick = function() {
   if (choosingState == 'over') return;
+  if (currentTurn != 'human') return;
   var x = parseInt($(this).attr("x"));
   var y = parseInt($(this).attr("y"));
   var state = checkState(x,y);
@@ -152,16 +167,9 @@ var cellOnClick = function() {
       makeMove(fromx,fromy,x,y);
 
       if (checkWin()) return;
-
       currentTurn = 'pc';
       setStatus('PC turn, he is thinking...');
-      var move = board.getPCResponse();
-      makeMove(move.from.x, move.from.y, move.to.x, move.to.y, move);
-      currentTurn = 'human';
-      choosingState = 'none';
-      $('.enabled').removeClass('enabled');
-      setStatus('Your turn, You are white!');
-      if (checkWin()) return;
+      chessEngine.postMessage(board.getConfiguration());
     }
   }
 }

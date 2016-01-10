@@ -454,7 +454,7 @@ var Board = function(conf) {
       if (move.specialCondition.name == 'castling') {
         makeMove(move.specialCondition.secondMove);
       } else if (move.specialCondition.name == 'upgradePawn') {
-        var color = get(move.from.x, move.from.y).color;
+        var color = move.from.container.color;
         set(move.to.x, move.to.y, makePieceContainer(Piece.Queen, color));
       }
     }

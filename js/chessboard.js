@@ -150,7 +150,8 @@ var Board = function(conf) {
     secondColor = conf.secondColor;
     state = conf.state;
     HUMAN_COLOR = conf.HUMAN_COLOR;
-    PC_COLOR = conf.PC_COLOR ;
+    PC_COLOR = conf.PC_COLOR;
+    MAX_DEPTH = conf.MAX_DEPTH;
   }
 
   var findNameOfPiece = function(piece) {
@@ -637,6 +638,7 @@ var Board = function(conf) {
     conf.state = state;
     conf.HUMAN_COLOR = HUMAN_COLOR;
     conf.PC_COLOR = PC_COLOR;
+    conf.MAX_DEPTH = MAX_DEPTH;
     return conf;
   }
 

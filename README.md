@@ -1,7 +1,7 @@
 Chess game AI
 ===================
 
-This is a simple HTML Chess game AI using DFS.
+This is a simple HTML Chess game AI using DFS. Demo version can be played at http://bikrone.github.io/chess-ai.
 ![nightmode](https://cloud.githubusercontent.com/assets/5102383/12218526/6a9299e4-b754-11e5-8e33-5bac48cb8300.png)
 
 ###Algorithm

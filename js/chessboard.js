@@ -21,8 +21,6 @@ var HUMAN_COLOR = WHITE;
 var PC_COLOR = BLACK;
 var MAX_INT = 1000000000;
 
-
-
 var Board = function(initState) {
   var MAX_DEPTH = 3;
 

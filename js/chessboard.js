@@ -547,14 +547,13 @@ var Board = function(conf) {
   }
   var calcCount = 0;
 
-  var tryMove = function(humanOrPC, depth) {
+  var tryMove = function(humanOrPC, depth, alpha, beta) {
     calcCount++;
     if (depth == 0) return { move: null, bestScore: humanOrPC ? -calculateScore(state) : calculateScore(state)};
     var MINVALUE = -MAX_INT;
     var maxScoreCanHave = MINVALUE-1;
     var rightMove = null;
     var allPossibleMoves = getAllPossibleMoves(humanOrPC);
-    var iiMove = 0;
     
     for (var ii = 0; ii<allPossibleMoves.length; ii++) {
       var move = allPossibleMoves[ii];
@@ -563,17 +562,16 @@ var Board = function(conf) {
         undoMove(move);
         return { move: move, bestScore: -MINVALUE };
       }
-      var bestOfTheOther= -tryMove(humanOrPC ^ 1, depth-1).bestScore;
+      var bestOfTheOther= -tryMove(humanOrPC ^ 1, depth-1, -beta, -alpha).bestScore;
+
+      undoMove(move);
       if ( bestOfTheOther > maxScoreCanHave) {
         maxScoreCanHave = bestOfTheOther;
         rightMove = move;
-        iiMove = ii;
       }
-      undoMove(move);
+      if (maxScoreCanHave > alpha) alpha = maxScoreCanHave;
+      if (alpha >= beta) return { move: move, bestScore: alpha };
     }
-    if (depth == 0) {
-      console.log('Chosen Move is ' + iiMove);
-    } 
     return {move: rightMove, bestScore: maxScoreCanHave }; 
   }
 
@@ -615,7 +613,7 @@ var Board = function(conf) {
 
   this.getPCResponse = function() {
     calcCount = 0;
-    var res = tryMove(false, MAX_DEPTH).move;
+    var res = tryMove(false, MAX_DEPTH, -MAX_INT, MAX_INT).move;
     console.log('Calculation steps: ' + calcCount);
     return res;
   }

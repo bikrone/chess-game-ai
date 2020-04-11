@@ -555,7 +555,7 @@ const Board = function (conf) {
     const MINVALUE = -MAX_INT;
     let maxScoreCanHave = MINVALUE - 1;
     let rightMove = null;
-    const allPossibleMoves = getAllPossibleMoves(humanOrPC);
+    const allPossibleMoves = shuffle(getAllPossibleMoves(humanOrPC));
 
     const getBestResult = () => {
       if (depth === MAX_DEPTH) {
